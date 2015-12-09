@@ -355,6 +355,15 @@ class ViewLine implements IViewLineData {
 
 			if (clientRects.length > 0) {
 				result = this._createRawVisibleRangesFromClientRects(clientRects, deltaTop, correctionTop, deltaLeft);
+				//fix cursor
+				var fontFamily = this._context.configuration.editor.stylingInfo.fontFamily;
+				if( fontFamily.trim() != ""){
+					var font = this._context.configuration.editor.fontSize + 'px ' + fontFamily;
+					var max = result.length;
+					for (var i = 0; i < max; i++) {
+						result[i].left = measureTextWidth(endElement.textContent, font, startOffset, endOffset);
+					}
+				}
 			}
 
 			return result;
@@ -749,4 +758,13 @@ export function renderLine(input:IRenderLineInput): IRenderLineOutput {
 	result.partsCount = partsCount;
 
 	return result;
+}
+
+//measure width of text
+function measureTextWidth(text: string, font, startOffset :number, endOffset :number): number {
+	var txt = text.substr(0, startOffset);
+	var canvas = document.createElement("canvas");
+	var ctx = canvas.getContext("2d");
+	ctx.font = font;
+	return Math.round(ctx.measureText(txt).width);
 }
