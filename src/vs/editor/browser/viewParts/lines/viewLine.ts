@@ -344,6 +344,10 @@ class ViewLine implements IViewLineData {
 				return null;
 			}
 
+			//append fake char -> เพื่อแก้ปัญหา getClientRects หาความยาวของตัวอักษรผิด เพราะถ้าใส่ตัวสุดท้ายเป็นภาษา eng getClientRects จะหาความยาวของคำถูกต้อง
+			startElement.textContent = startElement.textContent + '#';
+			endElement.textContent = endElement.textContent + '#';
+
 			startOffset = Math.min(startElement.textContent.length, Math.max(0, startOffset));
 			endOffset = Math.min(endElement.textContent.length, Math.max(0, endOffset));
 
@@ -353,17 +357,12 @@ class ViewLine implements IViewLineData {
 			var clientRects = range.getClientRects(),
 				result:EditorBrowser.IVisibleRange[] = null;
 
+			//remove fake char
+			startElement.textContent = startElement.textContent.substr(0,startElement.textContent.length - 1);
+			endElement.textContent = endElement.textContent.substr(0,endElement.textContent.length - 1);
+
 			if (clientRects.length > 0) {
 				result = this._createRawVisibleRangesFromClientRects(clientRects, deltaTop, correctionTop, deltaLeft);
-				//fix cursor
-				var fontFamily = this._context.configuration.editor.stylingInfo.fontFamily;
-				if( fontFamily.trim() != ""){
-					var font = this._context.configuration.editor.fontSize + 'px ' + fontFamily;
-					var max = result.length;
-					for (var i = 0; i < max; i++) {
-						result[i].left = measureTextWidth(endElement.textContent, font, startOffset, endOffset);
-					}
-				}
 			}
 
 			return result;
@@ -758,13 +757,4 @@ export function renderLine(input:IRenderLineInput): IRenderLineOutput {
 	result.partsCount = partsCount;
 
 	return result;
-}
-
-//measure width of text
-function measureTextWidth(text: string, font, startOffset :number, endOffset :number): number {
-	var txt = text.substr(0, startOffset);
-	var canvas = document.createElement("canvas");
-	var ctx = canvas.getContext("2d");
-	ctx.font = font;
-	return Math.round(ctx.measureText(txt).width);
 }
