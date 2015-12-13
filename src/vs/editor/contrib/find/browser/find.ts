@@ -21,6 +21,7 @@ import {IKeybindingService, IKeybindingContextKey, IKeybindings} from 'vs/platfo
 import {IContextViewService} from 'vs/platform/contextview/browser/contextView';
 import {INullService} from 'vs/platform/instantiation/common/instantiation';
 import {KeyMod, KeyCode} from 'vs/base/common/keyCodes';
+import {Range} from 'vs/editor/common/core/range';
 
 /**
  * The Find controller will survive an editor.setModel(..) call
@@ -34,7 +35,7 @@ export class FindController implements EditorCommon.IEditorContribution, FindWid
 	private editor:EditorBrowser.ICodeEditor;
 	private _findWidgetVisible: IKeybindingContextKey<boolean>;
 
-	private model:FindModel.IFindModel;
+	private model:FindModel.FindModelBoundToEditorModel;
 	private widget:FindWidget.FindWidget;
 	private widgetIsVisible:boolean;
 	private widgetListeners:Lifecycle.IDisposable[];
@@ -84,10 +85,7 @@ export class FindController implements EditorCommon.IEditorContribution, FindWid
 
 	public dispose(): void {
 		this.widgetListeners = Lifecycle.disposeAll(this.widgetListeners);
-		if (this.widget) {
-			this.widget.dispose();
-			this.widget = null;
-		}
+		this.widget.dispose();
 		this.disposeBindingAndModel();
 		this._eventEmitter.dispose();
 	}
@@ -98,9 +96,7 @@ export class FindController implements EditorCommon.IEditorContribution, FindWid
 
 	private disposeBindingAndModel(): void {
 		this._findWidgetVisible.reset();
-		if (this.widget) {
-			this.widget.setModel(null);
-		}
+		this.widget.setModel(null);
 		if (this.model) {
 			this.model.dispose();
 			this.model = null;
@@ -113,49 +109,16 @@ export class FindController implements EditorCommon.IEditorContribution, FindWid
 		this.editor.focus();
 	}
 
-	private _ensureHasState(): void {
-		if (!this.lastState) {
-			this.lastState = {
-				isReplaceRevealed: false,
-				properties: {
-					isRegex: false,
-					matchCase: false,
-					wholeWord: false
-				},
-				replaceString: '',
-				searchString: ''
-			};
-		}
-	}
-
 	public toggleCaseSensitive(): void {
-		if (this.widget) {
-			this.widget.toggleCaseSensitive();
-		} else {
-			this._ensureHasState();
-			this.lastState.properties.matchCase = !this.lastState.properties.matchCase;
-			this._eventEmitter.emit(FindController._STATE_CHANGED_EVENT);
-		}
+		this.widget.toggleCaseSensitive();
 	}
 
 	public toggleWholeWords(): void {
-		if (this.widget) {
-			this.widget.toggleWholeWords();
-		} else {
-			this._ensureHasState();
-			this.lastState.properties.wholeWord = !this.lastState.properties.wholeWord;
-			this._eventEmitter.emit(FindController._STATE_CHANGED_EVENT);
-		}
+		this.widget.toggleWholeWords();
 	}
 
 	public toggleRegex(): void {
-		if (this.widget) {
-			this.widget.toggleRegex();
-		} else {
-			this._ensureHasState();
-			this.lastState.properties.isRegex = !this.lastState.properties.isRegex;
-			this._eventEmitter.emit(FindController._STATE_CHANGED_EVENT);
-		}
+		this.widget.toggleRegex();
 	}
 
 	private onWidgetClosed(): void {
@@ -225,6 +188,14 @@ export class FindController implements EditorCommon.IEditorContribution, FindWid
 		// Start searching
 		this.model.start(this.lastState, searchScope, shouldFocus);
 		this.widgetIsVisible = true;
+
+		if (shouldFocus) {
+			if (forceRevealReplace) {
+				this.widget.focusReplaceInput();
+			} else {
+				this.widget.focusFindInput();
+			}
+		}
 	}
 
 	public startFromAction(withReplace:boolean): void {
@@ -546,7 +517,7 @@ export class SelectionHighlighter implements EditorCommon.IEditorContribution {
 			return;
 		}
 
-		var r = multiCursorFind(this.editor, false);
+		let r = multiCursorFind(this.editor, false);
 		if (!r) {
 			this.removeDecorations();
 			return;
@@ -567,19 +538,39 @@ export class SelectionHighlighter implements EditorCommon.IEditorContribution {
 			return;
 		}
 
-		var matches = this.editor.getModel().findMatches(r.searchText, true, r.isRegex, r.matchCase, r.wholeWord);
+		let allMatches = this.editor.getModel().findMatches(r.searchText, true, r.isRegex, r.matchCase, r.wholeWord);
+		allMatches.sort(Range.compareRangesUsingStarts);
 
-		// do not overlap with selection (issue #64)
-		let editorSelection = this.editor.getSelection();
+		let selections = this.editor.getSelections();
+		selections.sort(Range.compareRangesUsingStarts);
 
-		matches = matches.filter((m) => {
-			if (editorSelection.equalsRange(m)) {
-				return false;
+		// do not overlap with selection (issue #64 and #512)
+		let matches: EditorCommon.IEditorRange[] = [];
+		for (let i = 0, j = 0, len = allMatches.length, lenJ = selections.length; i < len; ) {
+			let match = allMatches[i];
+
+			if (j >= lenJ) {
+				// finished all editor selections
+				matches.push(match);
+				i++;
+			} else {
+				let cmp = Range.compareRangesUsingStarts(match, selections[j]);
+				if (cmp < 0) {
+					// match is before sel
+					matches.push(match);
+					i++;
+				} else if (cmp > 0) {
+					// sel is before match
+					j++;
+				} else {
+					// sel is equal to match
+					i++;
+					j++;
+				}
 			}
-			return true;
-		});
+		}
 
-		var decorations = matches.map(r => {
+		let decorations = matches.map(r => {
 			return {
 				range: r,
 				options: {

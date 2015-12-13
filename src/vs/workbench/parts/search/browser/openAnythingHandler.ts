@@ -45,6 +45,7 @@ export class OpenAnythingHandler extends QuickOpenHandler {
 	private delayer: ThrottledDelayer<QuickOpenModel>;
 	private pendingSearch: TPromise<QuickOpenModel>;
 	private isClosed: boolean;
+	private scorerCache: {[key: string]: number};
 	private fuzzyMatchingEnabled: boolean;
 	private configurationListenerUnbind: ListenerUnbind;
 
@@ -64,6 +65,7 @@ export class OpenAnythingHandler extends QuickOpenHandler {
 		this.openFileHandler.setStandalone(false);
 
 		this.resultsToSearchCache = Object.create(null);
+		this.scorerCache = Object.create(null);
 		this.delayer = new ThrottledDelayer<QuickOpenModel>(OpenAnythingHandler.SEARCH_DELAY);
 
 		this.updateFuzzyMatching(contextService.getOptions().globalSettings.settings);
@@ -254,7 +256,7 @@ export class OpenAnythingHandler extends QuickOpenHandler {
 
 		// Pattern match on results and adjust highlights
 		let results: QuickOpenEntry[] = [];
-		const searchInPath = searchValue.indexOf(paths.nativeSep) >= 0;
+		const searchInPath = this.fuzzyMatchingEnabled || searchValue.indexOf(paths.nativeSep) >= 0;
 		for (let i = 0; i < cachedEntries.length; i++) {
 			let entry = cachedEntries[i];
 
@@ -293,18 +295,31 @@ export class OpenAnythingHandler extends QuickOpenHandler {
 
 		// Fuzzy scoring is special
 		if (enableFuzzyScoring) {
-			const labelAScore = scorer.score(elementA.getLabel(), lookFor);
-			const labelBScore = scorer.score(elementB.getLabel(), lookFor);
+
+			// Give higher importance to label score
+			const labelAScore = scorer.score(elementA.getLabel(), lookFor, this.scorerCache);
+			const labelBScore = scorer.score(elementB.getLabel(), lookFor, this.scorerCache);
+
+			// Useful for understanding the scoring
+			// elementA.setPrefix(labelAScore + ' ');
+			// elementB.setPrefix(labelBScore + ' ');
 
 			if (labelAScore !== labelBScore) {
 				return labelAScore > labelBScore ? -1 : 1;
 			}
 
-			const descriptionAScore = scorer.score(elementA.getDescription(), lookFor);
-			const descriptionBScore = scorer.score(elementB.getDescription(), lookFor);
+			// Score on full resource path comes next
+			if (elementA.getResource() && elementB.getResource()) {
+				const resourceAScore = scorer.score(elementA.getResource().fsPath, lookFor, this.scorerCache);
+				const resourceBScore = scorer.score(elementB.getResource().fsPath, lookFor, this.scorerCache);
 
-			if (descriptionAScore !== descriptionBScore) {
-				return descriptionAScore > descriptionBScore ? -1 : 1;
+				// Useful for understanding the scoring
+				// elementA.setPrefix(elementA.getPrefix() + ' ' + resourceAScore + ': ');
+				// elementB.setPrefix(elementB.getPrefix() + ' ' + resourceBScore + ': ');
+
+				if (resourceAScore !== resourceBScore) {
+					return resourceAScore > resourceBScore ? -1 : 1;
+				}
 			}
 		}
 
@@ -329,6 +344,7 @@ export class OpenAnythingHandler extends QuickOpenHandler {
 
 		// Clear Cache
 		this.resultsToSearchCache = Object.create(null);
+		this.scorerCache = Object.create(null);
 
 		// Propagate
 		this.openSymbolHandler.onClose(canceled);

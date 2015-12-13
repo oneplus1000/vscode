@@ -1,6 +1,6 @@
 {
   "name": "Code",
-  "version": "0.10.3",
+  "version": "0.10.4",
   "electronVersion": "0.34.5",
   "author": {
     "name": "Microsoft Corporation"
@@ -28,7 +28,7 @@
     "semver": "^4.2.0",
 	"vscode-debugprotocol": "^1.0.0",
     "vscode-textmate": "^1.0.9",
-    "native-keymap": "^0.0.2",
+    "native-keymap": "^0.1.0",
     "winreg": "0.0.12",
     "yauzl": "^2.3.1"
   },
