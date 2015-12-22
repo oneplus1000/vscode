@@ -39,10 +39,11 @@ import {IMessageService, Severity} from 'vs/platform/message/common/message';
 import {IProgressService} from 'vs/platform/progress/common/progress';
 import {ITelemetryService} from 'vs/platform/telemetry/common/telemetry';
 import {IKeybindingService} from 'vs/platform/keybinding/common/keybindingService';
-import {KeybindingsUtils} from 'vs/platform/keybinding/common/keybindingsUtils';
 import {KeyMod, KeyCode} from 'vs/base/common/keyCodes';
 
 export class SidebarPart extends Part implements IViewletService {
+
+	public static activeViewletSettingsKey = 'workbench.sidebar.activeviewletid';
 
 	public serviceId = IViewletService;
 
@@ -233,6 +234,9 @@ export class SidebarPart extends Part implements IViewletService {
 
 		// Remember Viewlet
 		this.activeViewlet = viewlet;
+
+		// Store in preferences
+		this.storageService.store(SidebarPart.activeViewletSettingsKey, this.activeViewlet.getId(), StorageScope.WORKSPACE);
 
 		// Remember
 		this.lastActiveViewletId = this.activeViewlet.getId();

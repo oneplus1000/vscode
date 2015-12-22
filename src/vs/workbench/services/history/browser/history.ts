@@ -7,7 +7,6 @@
 import errors = require('vs/base/common/errors');
 import platform = require('vs/base/common/platform');
 import nls = require('vs/nls');
-import types = require('vs/base/common/types');
 import {EventType} from 'vs/base/common/events';
 import {IEditorSelection} from 'vs/editor/common/editorCommon';
 import {BaseEditor} from 'vs/workbench/browser/parts/editor/baseEditor';
@@ -15,7 +14,7 @@ import {TextEditorOptions, EditorInput} from 'vs/workbench/common/editor';
 import {BaseTextEditor} from 'vs/workbench/browser/parts/editor/textEditor';
 import {EditorEvent, TextEditorSelectionEvent, EventType as WorkbenchEventType, EditorInputEvent} from 'vs/workbench/browser/events';
 import {IWorkbenchEditorService} from 'vs/workbench/services/editor/common/editorService';
-import {IQuickOpenService} from 'vs/workbench/services/quickopen/browser/quickOpenService';
+import {IQuickOpenService} from 'vs/workbench/services/quickopen/common/quickOpenService';
 import {IHistoryService} from 'vs/workbench/services/history/common/history';
 import {Selection} from 'vs/editor/common/core/selection';
 import {Position, IEditorInput} from 'vs/platform/editor/common/editor';

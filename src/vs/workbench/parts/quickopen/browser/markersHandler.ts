@@ -17,12 +17,12 @@ import {ITree, IElementCallback} from 'vs/base/parts/tree/common/tree';
 import Severity from 'vs/base/common/severity';
 import {QuickOpenHandler} from 'vs/workbench/browser/quickopen';
 import {QuickOpenAction} from 'vs/workbench/browser/actions/quickOpenAction';
-import {Mode, IContext, IAutoFocus} from 'vs/base/parts/quickopen/browser/quickOpen';
+import {Mode, IContext, IAutoFocus} from 'vs/base/parts/quickopen/common/quickOpen';
 import {QuickOpenEntryItem, QuickOpenModel} from 'vs/base/parts/quickopen/browser/quickOpenModel';
 import {IEditorService} from 'vs/platform/editor/common/editor';
 import {IMarkerService, IMarker} from 'vs/platform/markers/common/markers';
 import {IWorkspaceContextService} from 'vs/platform/workspace/common/workspace';
-import {IQuickOpenService} from 'vs/workbench/services/quickopen/browser/quickOpenService';
+import {IQuickOpenService} from 'vs/workbench/services/quickopen/common/quickOpenService';
 
 class MarkerEntry extends QuickOpenEntryItem {
 
@@ -51,7 +51,7 @@ class MarkerEntry extends QuickOpenEntryItem {
 		elements.push('<div class="inline entry">');
 		elements.push('<div>');
 		if (source) {
-			elements.push(strings.format('<span class="source">[{0}]&nbsp;</span>', source))
+			elements.push(strings.format('<span class="source">[{0}]&nbsp;</span>', source));
 		}
 		elements.push(strings.format('<span class="message">{0}</span>', message));
 		elements.push('</div>');

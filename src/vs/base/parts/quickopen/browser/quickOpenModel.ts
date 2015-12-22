@@ -11,7 +11,7 @@ import Tree = require('vs/base/parts/tree/common/tree');
 import Filters = require('vs/base/common/filters');
 import Strings = require('vs/base/common/strings');
 import Paths = require('vs/base/common/paths');
-import {IQuickNavigateConfiguration, IModel, IDataSource, IFilter, IRenderer, IRunner, Mode} from './quickOpen';
+import {IQuickNavigateConfiguration, IModel, IDataSource, IFilter, IRenderer, IRunner, Mode} from 'vs/base/parts/quickopen/common/quickOpen';
 import ActionsRenderer = require('vs/base/parts/tree/browser/actionsRenderer');
 import Actions = require('vs/base/common/actions');
 import {compareAnything} from 'vs/base/common/comparers';
@@ -170,8 +170,8 @@ export class QuickOpenEntry {
 			let resourceB = elementB.getResource();
 
 			if (resourceA && resourceB) {
-				nameA = elementA.getResource().fsPath;
-				nameB = elementB.getResource().fsPath;
+				nameA = resourceA.fsPath;
+				nameB = resourceB.fsPath;
 			}
 		}
 
@@ -188,16 +188,16 @@ export class QuickOpenEntry {
 		// Highlight file aware
 		if (entry.getResource()) {
 
-			// Fuzzy: Highlight is special
-			if (fuzzyHighlight) {
-				let candidateLabelHighlights = Filters.matchesFuzzy(lookFor, entry.getLabel(), true);
+			// Fuzzy/Full-Path: Highlight is special
+			if (fuzzyHighlight || lookFor.indexOf(Paths.nativeSep) >= 0) {
+				let candidateLabelHighlights = Filters.matchesFuzzy(lookFor, entry.getLabel(), fuzzyHighlight);
 				if (!candidateLabelHighlights) {
 					const pathPrefix = entry.getDescription() ? (entry.getDescription() + Paths.nativeSep) : '';
 					const pathPrefixLength = pathPrefix.length;
 
 					// If there are no highlights in the label, build a path out of description and highlight and match on both,
 					// then extract the individual label and description highlights back to the original positions
-					let pathHighlights = Filters.matchesFuzzy(lookFor, pathPrefix + entry.getLabel(), true);
+					let pathHighlights = Filters.matchesFuzzy(lookFor, pathPrefix + entry.getLabel(), fuzzyHighlight);
 					if (pathHighlights) {
 						pathHighlights.forEach(h => {
 
@@ -220,17 +220,6 @@ export class QuickOpenEntry {
 					}
 				} else {
 					labelHighlights = candidateLabelHighlights;
-				}
-			}
-
-			// Path search: Highlight in label and description
-			else if (lookFor.indexOf(Paths.nativeSep) >= 0) {
-				descriptionHighlights = Filters.matchesFuzzy(Strings.trim(lookFor, Paths.nativeSep), entry.getDescription());
-
-				// If we have no highlights, assume that the match is split among name and parent folder
-				if (!descriptionHighlights || !descriptionHighlights.length) {
-					labelHighlights = Filters.matchesFuzzy(Paths.basename(lookFor), entry.getLabel());
-					descriptionHighlights = Filters.matchesFuzzy(Strings.trim(Paths.dirname(lookFor), Paths.nativeSep), entry.getDescription());
 				}
 			}
 

@@ -28,7 +28,7 @@ import Severity from 'vs/base/common/severity';
 import { IGitService, IFileStatus, Status, StatusType, ServiceState,
 	IModel, IBranch, GitErrorCodes, ServiceOperations }
 	from 'vs/workbench/parts/git/common/git';
-import {IQuickOpenService, IPickOpenEntry} from 'vs/workbench/services/quickopen/browser/quickOpenService';
+import {IQuickOpenService, IPickOpenEntry} from 'vs/workbench/services/quickopen/common/quickOpenService';
 
 function flatten(context?: any, preferFocus = false): IFileStatus[] {
 	if (!context) {
@@ -983,7 +983,7 @@ export class PublishAction extends GitAction {
 			promise = TPromise.as(result ? remoteName : null);
 		} else {
 			promise = this.quickOpenService.pick(remotes.map(r => r.name), {
-				placeHolder: nls.localize('publishPickMessage', "Pick a remote to push the branch '{0}' to:", branchName)
+				placeHolder: nls.localize('publishPickMessage', "Pick a remote to publish the branch '{0}' to:", branchName)
 			});
 		}
 
@@ -1122,5 +1122,39 @@ export class UndoLastCommitAction extends GitAction {
 
 	public run():Promise {
 		return this.gitService.reset('HEAD~');
+	}
+}
+
+export class StartGitCheckoutAction extends Action {
+
+	public static ID = 'workbench.action.git.startGitCheckout';
+	public static LABEL = nls.localize('checkout', "Checkout");
+	private quickOpenService: IQuickOpenService;
+
+	constructor(id: string, label: string, @IQuickOpenService quickOpenService: IQuickOpenService) {
+		super(id, label);
+		this.quickOpenService = quickOpenService;
+	}
+
+	public run(event?:any): Promise {
+		this.quickOpenService.show('git checkout ');
+		return Promise.as(null);
+	}
+}
+
+export class StartGitBranchAction extends Action {
+
+	public static ID = 'workbench.action.git.startGitBranch';
+	public static LABEL = nls.localize('branch2', "Branch");
+	private quickOpenService: IQuickOpenService;
+
+	constructor(id: string, label: string, @IQuickOpenService quickOpenService: IQuickOpenService) {
+		super(id, label);
+		this.quickOpenService = quickOpenService;
+	}
+
+	public run(event?:any): Promise {
+		this.quickOpenService.show('git branch ');
+		return Promise.as(null);
 	}
 }

@@ -4,10 +4,8 @@
  *--------------------------------------------------------------------------------------------*/
 'use strict';
 
-import nls = require('vs/nls');
 import {TPromise, Promise} from 'vs/base/common/winjs.base';
 import URI from 'vs/base/common/uri';
-import paths = require('vs/base/common/paths');
 import {FileEditorInput} from 'vs/workbench/parts/files/browser/editors/fileEditorInput';
 import {CACHE, TextFileEditorModel} from 'vs/workbench/parts/files/browser/editors/textFileEditorModel';
 import {IResult, ITextFileOperationResult, ConfirmResult, ITextFileService} from 'vs/workbench/parts/files/common/files';
@@ -45,7 +43,7 @@ export abstract class TextFileService implements ITextFileService {
 		this.listenerToUnbind = this.eventService.addListener(EventType.WORKBENCH_OPTIONS_CHANGED, () => this.onOptionsChanged());
 		if (this.lifecycleService) {
 			this.lifecycleService.addBeforeShutdownParticipant(this);
-			this.lifecycleService.onShutdown.add(this.dispose, this);
+			this.lifecycleService.onShutdown(this.dispose, this);
 		}
 	}
 

@@ -8,13 +8,13 @@ import Severity from 'vs/base/common/severity';
 import errors = require('vs/base/common/errors');
 import dom = require('vs/base/browser/dom');
 import lifecycle = require('vs/base/common/lifecycle');
-import actions = require('vs/base/common/actions');
+import { Action } from 'vs/base/common/actions';
 import statusbar = require('vs/workbench/browser/parts/statusbar/statusbar');
 import { IPluginService, IPluginStatus } from 'vs/platform/plugins/common/plugins';
 import { IInstantiationService } from 'vs/platform/instantiation/common/instantiation';
 import { IMessageService, CloseAction } from 'vs/platform/message/common/message';
 import { UninstallAction } from 'vs/workbench/parts/extensions/electron-browser/extensionsActions';
-import { IQuickOpenService } from 'vs/workbench/services/quickopen/browser/quickOpenService';
+import { IQuickOpenService } from 'vs/workbench/services/quickopen/common/quickOpenService';
 import { IExtensionsService, IGalleryService, IExtension } from 'vs/workbench/parts/extensions/common/extensions';
 
 var $ = dom.emmet;
@@ -50,27 +50,31 @@ export class ExtensionsStatusbarItem implements statusbar.IStatusbarItem {
 		this.container = container;
 		if (this.messageCount > 0) {
 			this.domNode = dom.append(container, $('a.extensions-statusbar'));
-			this.domNode.title = nls.localize('extensions', "Extensions"),
-			this.domNode.textContent = `${ this.messageCount }`;
+			const issueLabel = this.messageCount > 1 ? nls.localize('issues', "issues") : nls.localize('issue', "issue");
+			const extensionLabel = nls.localize('extension', "extension")
+			this.domNode.title = `${ this.messageCount } ${ extensionLabel } ${ issueLabel }`;
+			this.domNode.textContent = `${ this.messageCount } ${ issueLabel }`;
 
 			this.toDispose.push(dom.addDisposableListener(this.domNode, 'click', () => {
-				Object.keys(this.status).forEach(key => {
-					this.status[key].messages.forEach(m => {
-						if (m.type > Severity.Ignore) {
-							this.messageService.show(m.type, {
-								message:  m.message,
-								actions: [CloseAction, new actions.Action('extensions.uninstall2', nls.localize('uninstall', "Uninstall Extension"), null, true, () => {
-									return this.extensionsService.getInstalled().then(installed => {
-										const extension = installed.filter(ext => ext.path === m.source).pop();
-										if (extension) {
-											return this.instantiationService.createInstance(UninstallAction).run(extension);
-										}
-									});
-								})]
-							});
-						}
+				this.extensionsService.getInstalled().done(installed => {
+					Object.keys(this.status).forEach(key => {
+						this.status[key].messages.forEach(m => {
+							if (m.type > Severity.Info) {
+								const extension = installed.filter(ext => ext.path === m.source).pop();
+								const actions = [CloseAction];
+								if (extension) {
+									const actionLabel = nls.localize('uninstall', "Uninstall") + ' ' + (extension.name ? extension.name : 'Extension');
+									actions.push(new Action('extensions.uninstall2', actionLabel, null, true, () => this.instantiationService.createInstance(UninstallAction).run(extension)));
+								}
+
+								this.messageService.show(m.type, {
+									message:  ( m.source ? '[' + m.source + ']: ' : '') + m.message,
+									actions
+								});
+							}
+						});
 					});
-				});
+				}, errors.onUnexpectedError);
 			}));
 		}
 

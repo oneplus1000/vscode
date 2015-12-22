@@ -18,10 +18,10 @@ import Storage = require('vs/workbench/browser/storage');
 import WorkbenchEditorCommon = require('vs/workbench/common/editor');
 import Viewlet = require('vs/workbench/browser/viewlet');
 import InstantiationService = require('vs/platform/instantiation/common/instantiationService');
+import Event, {Emitter} from 'vs/base/common/event';
 import LifecycleService = require('vs/platform/lifecycle/common/baseLifecycleService');
 import Types = require('vs/base/common/types');
 import Mime = require('vs/base/common/mime');
-import {EventProvider} from 'vs/base/common/eventProvider';
 import Assert = require('vs/base/common/assert');
 import Severity from 'vs/base/common/severity';
 import Arrays = require('vs/base/common/arrays');
@@ -31,7 +31,7 @@ import {IConfigurationService} from 'vs/platform/configuration/common/configurat
 import {IStorageService, StorageScope} from 'vs/platform/storage/common/storage';
 import UntitledEditorService = require('vs/workbench/services/untitled/browser/untitledEditorService');
 import WorkbenchEditorService = require('vs/workbench/services/editor/common/editorService');
-import QuickOpenService = require('vs/workbench/services/quickopen/browser/quickOpenService');
+import QuickOpenService = require('vs/workbench/services/quickopen/common/quickOpenService');
 import ViewletService = require('vs/workbench/services/viewlet/common/viewletService');
 import PartService = require('vs/workbench/services/part/common/partService');
 import WorkspaceContextService = require('vs/workbench/services/workspace/common/contextService');
@@ -49,6 +49,7 @@ import {ITelemetryService, ITelemetryInfo} from 'vs/platform/telemetry/common/te
 import {IWorkspaceContextService, IWorkspace, IConfiguration} from 'vs/platform/workspace/common/workspace';
 import {IKeybindingService, IKeybindingContextKey, IKeybindingItem} from 'vs/platform/keybinding/common/keybindingService';
 import {Keybinding} from 'vs/base/common/keyCodes';
+import {IHTMLContentElement} from 'vs/base/common/htmlContent';
 
 export const TestWorkspace: IWorkspace = {
 	resource: URI.file('C:\\testWorkspace'),
@@ -166,6 +167,14 @@ export class TestKeybindingService implements IKeybindingService {
 
 	public getLabelFor(keybinding:Keybinding): string {
 		return keybinding._toUSLabel();
+	}
+
+	public getHTMLLabelFor(keybinding:Keybinding): IHTMLContentElement[] {
+		return keybinding._toUSHTMLLabel();
+	}
+
+	public getElectronAcceleratorFor(keybinding:Keybinding): string {
+		return keybinding._toElectronAccelerator();
 	}
 
 	public createScoped(domNode: HTMLElement): IKeybindingService {
@@ -497,11 +506,11 @@ export class TestQuickOpenService implements QuickOpenService.IQuickOpenService 
 		return [];
 	}
 
-	get onShow(): EventProvider<() => void> {
+	get onShow(): Event<void> {
 		return null;
 	}
 
-	get onHide(): EventProvider<() => void> {
+	get onHide(): Event<void> {
 		return null;
 	}
 
